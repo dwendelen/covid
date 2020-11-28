@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: covid
+spec:
+  tls:
+  - hosts:
+    - daan.se
+    secretName: daan-se-tls
+  rules:
+  - host: daan.se
+    http:
+      paths:
+      - path: /covid
+        backend:
+          serviceName: covid
+          servicePort: http
