@@ -1,0 +1,8 @@
+data:
+  newCases.url: "https://epistat.sciensano.be/Data/COVID19BE_CASES_AGESEX.json"
+  hospital.url: "https://epistat.sciensano.be/Data/COVID19BE_HOSP.json"
+  deaths.url: "https://epistat.sciensano.be/Data/COVID19BE_MORT.json"
+  skipLast: 3
+  cron: "47 4 8 * * *"
+clock:
+  zone: "Europe/Brussels"
