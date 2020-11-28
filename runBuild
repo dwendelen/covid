@@ -1,0 +1,33 @@
+#!/bin/bash
+set -e
+
+version=$(git rev-parse --short=8 HEAD)
+tagName=192.168.1.2:32000/covid:$version
+
+function main {
+    echo "Building $version"
+
+    checkoutAndRun $version build
+}
+
+function checkoutAndRun {
+    if [ -d build/git/.git ]; then
+        git worktree remove build/git
+    fi
+    if [ -d build/git ]; then
+        rm -R build/git
+    fi
+    git worktree add -f build/git $1
+    (cd build/git; $2)
+    git worktree remove build/git
+}
+
+function build {
+    ./gradlew build
+    docker build -t $tagName .
+
+    #docker login 192.168.1.2:32000
+    docker push $tagName
+}
+
+main
