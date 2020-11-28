@@ -24,10 +24,10 @@ function checkoutAndRun {
 
 function build {
     ./gradlew build
-    docker build -t $tagName .
+    sudo docker build -t $tagName .
 
     #docker login 192.168.1.2:32000
-    docker push $tagName
+    sudo docker push $tagName
 }
 
 main
