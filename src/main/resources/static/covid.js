@@ -70,7 +70,7 @@ function applyWeeklyAverageAround(data) {
 }
 
 function fetchData() {
-    return $.ajax("/data")
+    return $.ajax("data")
         .done(payload => {
             data = payload;
             render();
