@@ -1,26 +1,59 @@
 let data = null;
 
+let lines = [];
+let chart = null;
+
 function main() {
     exponentialBackoff(fetchData, 500, 2, 60000);
 }
 
 function render() {
+    lines.push({
+        selector: dp => dp.newCases,
+        transformation: weeklyAverageAround
+    });
+
     let body = $("body");
     let message = $("<p style='text-align: center'>Data was fetched on " + data.timestamp + "</p>")
     let canvas = $("<canvas id='canvas'>")
+    let title = $("<h1>Settings</h1>")
+    let settings = $(
+        "<div>" +
+        "<select>" +
+        "<option>New cases</option>" +
+        "<option>Admissions</option>" +
+        "<option>In hospital</option>" +
+        "<option>In ICU</option>" +
+        "<option>Deaths</option>" +
+        "</select>" +
+        "<select>" +
+        "<option>None</option>" +
+        "<option>Weekly average, before point, round up</option>" +
+        "<option>Weekly average, around point, round up</option>" +
+        "</select>" +
+        "</div>"
+    )
     body.empty();
     body.append(message);
     body.append(canvas);
+    body.append(title);
+    body.append(settings);
 
-    let myChart = new Chart('canvas', {
+    let dateSets = lines
+        .map(line => {
+            return {
+                label: "label",
+                data: line.transformation(data.dataPoints.map(line.selector)),
+                pointRadius: 0,
+                pointHitRadius: 5
+            };
+        });
+
+    chart = new Chart('canvas', {
         type: 'line',
         data: {
             labels: data.dataPoints.map(dp => dp.date),
-            datasets: [{
-                label: "New cases, weekly average",
-                data: applyWeeklyAverageAround(data.dataPoints.map(dp => dp.newCases)),
-                pointRadius: 0
-            }]
+            datasets: dateSets
         },
         options: {
             scales: {
@@ -51,12 +84,34 @@ function render() {
     });
 }
 
-function applyWeeklyAverageAround(data) {
+function noTransformation(data) {
+    return data;
+}
+
+function weeklyAverageBefore(data) {
+    return data.map((d, i) => {
+        if (i < 7) {
+            return null;
+        } else {
+            return Math.ceil((
+                data[i - 6] +
+                data[i - 5] +
+                data[i - 4] +
+                data[i - 3] +
+                data[i - 2] +
+                data[i - 1] +
+                d
+            ) / 7);
+        }
+    })
+}
+
+function weeklyAverageAround(data) {
     return data.map((d, i) => {
         if (i < 3 || i > data.size - 4) {
             return null;
         } else {
-            return (
+            return Math.ceil((
                 data[i - 3] +
                 data[i - 2] +
                 data[i - 1] +
@@ -64,7 +119,7 @@ function applyWeeklyAverageAround(data) {
                 data[i + 1] +
                 data[i + 2] +
                 data[i + 3]
-            ) / 7;
+            ) / 7);
         }
     })
 }
