@@ -4,6 +4,9 @@ let lines = [];
 let chart = null;
 let scale = null;
 
+let colors = ['blue', 'red', 'yellow', 'green'];
+let nextColor = 0;
+
 let transformations = [
     {
         text: "None",
@@ -104,8 +107,12 @@ function main() {
     scale = scales[1];
     lines.push({
         selector: selectors[0],
-        transformation: transformations[2]
+        transformation: transformations[2],
+        color: colors[nextColor],
+        div: null,
+        deleteButton: null
     });
+    nextColor = (nextColor + 1) % colors.length;
     exponentialBackoff(fetchData, 500, 2, 60000);
 }
 
@@ -124,31 +131,9 @@ function render() {
 
     let settings = $("<div>");
 
-    let select = $("<select>");
-    selectors.forEach((sel, idx) => {
-        let s = lines[0].selector === sel ? "selected" : "";
-
-        let opt = $("<option value='" + idx + "' " + s + ">" + sel.text + "</option>");
-        select.append(opt);
-    });
-    select.change(() => {
-        lines[0].selector = selectors[select.val()];
-        redraw();
-    });
-    settings.append(select);
-
-    let trans = $("<select>");
-    transformations.forEach((t, idx) => {
-        let s = lines[0].transformation === t ? "selected" : "";
-
-        let opt = $("<option value='" + idx + "' " + s + ">" + t.text + "</option>");
-        trans.append(opt);
-    });
-    trans.change(() => {
-        lines[0].transformation = transformations[trans.val()];
-        redraw();
-    });
-    settings.append(trans);
+    let lineDiv = createLineDiv(lines[0]);
+    lines[0].deleteButton.prop("disabled", true);
+    settings.append(lineDiv);
 
     body.append(settings);
 
@@ -175,6 +160,72 @@ function render() {
     redraw();
 }
 
+function createLineDiv(line) {
+    let div = $("<div>");
+    let select = $("<select>");
+    selectors.forEach((sel, idx) => {
+        let s = line.selector === sel ? "selected" : "";
+
+        let opt = $("<option value='" + idx + "' " + s + ">" + sel.text + "</option>");
+        select.append(opt);
+    });
+    select.change(() => {
+        line.selector = selectors[select.val()];
+        redraw();
+    });
+    div.append(select);
+
+    let trans = $("<select>");
+    transformations.forEach((t, idx) => {
+        let s = line.transformation === t ? "selected" : "";
+
+        let opt = $("<option value='" + idx + "' " + s + ">" + t.text + "</option>");
+        trans.append(opt);
+    });
+    trans.change(() => {
+        line.transformation = transformations[trans.val()];
+        redraw();
+    });
+    div.append(trans);
+
+    let deleteButton = $("<button>Delete</button>");
+    deleteButton.click(() => {
+        lines = lines.filter(e => e !== line);
+        if(lines.length === 1) {
+            lines[0].deleteButton.prop("disabled", true);
+        }
+        div.remove();
+        redraw();
+    });
+    div.append(deleteButton);
+
+    let copyButton = $("<button>Copy</button>");
+    copyButton.click(() => {
+        if(lines.length === 1) {
+            lines[0].deleteButton.prop("disabled", false);
+        }
+        let newLine = {
+                selector: line.selector,
+                transformation: line.transformation,
+                color: colors[nextColor],
+                div: null,
+                deleteButton: null
+        };
+        nextColor = (nextColor + 1) % colors.length;
+        let newIdx = lines.findIndex(v => v === line) + 1;
+        lines.splice(newIdx, 0, newLine);
+        let newDiv = createLineDiv(newLine);
+        div.after(newDiv);
+        redraw();
+    });
+    div.append(copyButton);
+
+    line.div = div;
+    line.deleteButton = deleteButton;
+
+    return div;
+}
+
 function redraw() {
     chart.data.datasets = getDataSets();
     chart.options.scales.yAxes = [scale.config];
@@ -182,17 +233,19 @@ function redraw() {
 }
 
 
-let getDataSets = function () {
+function getDataSets() {
     return lines
         .map(line => {
             return {
-                label: "label",
+                label: line.selector.text,
                 data: line.transformation.transformation(data.dataPoints.map(line.selector.selector)),
                 pointRadius: 0,
-                pointHitRadius: 5
+                pointHitRadius: 5,
+                fill: false,
+                borderColor: line.color
             };
         });
-};
+}
 
 function fetchData() {
     return $.ajax("data")
