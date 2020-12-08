@@ -57,23 +57,28 @@ let transformations = [
 let selectors = [
     {
         text: "New cases",
-        selector: dp => dp.newCases
+        code: "newCases",
+        type: "province"
     },
     {
-        text: "Admissions",
-        selector: dp => dp.admissions
+        text: "New hospital",
+        code: "newHospital",
+        type: "province"
     },
     {
         text: "In hospital",
-        selector: dp => dp.hospital
+        code: "inHospital",
+        type: "province"
     },
     {
         text: "In ICU",
-        selector: dp => dp.icu
+        code: "inIcu",
+        type: "province"
     },
     {
         text: "Deaths",
-        selector: dp => dp.deaths
+        code: "deaths",
+        type: "region"
     }
 ]
 
@@ -101,6 +106,93 @@ let scales = [
             }
         }
     }
+]
+let belgie = {
+    code: "BE",
+    text: "Belgium",
+    parent: null
+}
+let vlaanderen = {
+    code: "FL",
+    text: "Vlaanderen",
+    parent: belgie
+};
+let brussels = {// Brussels is both a province and a region
+    code: "BR",
+    text: "Brussels",
+    parent: belgie
+};
+let wallonie = {
+    code: "WA",
+    text: "Wallonie",
+    parent: belgie
+};
+let westVlaanderen = {
+    code: "WV",
+    text: "West Vlaanderen",
+    parent: vlaanderen
+};
+let oostVlaanderen = {
+    code: "OV",
+    text: "Oost Vlaanderen",
+    parent: vlaanderen
+};
+let antwerpen = {
+    code: "AN",
+    text: "Antwerpen",
+    parent: vlaanderen
+};
+let vlaamsBrabant = {
+    code: "VB",
+    text: "Vlaams Brabant",
+    parent: vlaanderen
+};
+let limburg = {
+    code: "LM",
+    text: "Limburg",
+    parent: vlaanderen
+};
+let hainaut = {
+    code: "HA",
+    text: "Hainaut",
+    parent: wallonie
+};
+let brabantWallon = {
+    code: "BW",
+    text: "Brabant Wallon",
+    parent: wallonie
+};
+let namur = {
+    code: "NA",
+    text: "Namur",
+    parent: wallonie
+};
+let liege = {
+    code: "LG",
+    text: "Liège",
+    parent: wallonie
+};
+let luxembourg = {
+    code: "LX",
+    text: "Luxembourg",
+    parent: wallonie
+};
+
+let areas = [
+    belgie,
+    vlaanderen,
+    brussels,
+    wallonie,
+    westVlaanderen,
+    oostVlaanderen,
+    antwerpen,
+    vlaamsBrabant,
+    limburg,
+    hainaut,
+    brabantWallon,
+    namur,
+    liege,
+    luxembourg
 ]
 
 function main() {
@@ -140,7 +232,7 @@ function render() {
     chart = new Chart('canvas', {
         type: 'line',
         data: {
-            labels: data.dataPoints.map(dp => dp.date),
+            labels: data.dates
         },
         options: {
             animation: {
@@ -191,7 +283,7 @@ function createLineDiv(line) {
     let deleteButton = $("<button>Delete</button>");
     deleteButton.click(() => {
         lines = lines.filter(e => e !== line);
-        if(lines.length === 1) {
+        if (lines.length === 1) {
             lines[0].deleteButton.prop("disabled", true);
         }
         div.remove();
@@ -201,15 +293,15 @@ function createLineDiv(line) {
 
     let copyButton = $("<button>Copy</button>");
     copyButton.click(() => {
-        if(lines.length === 1) {
+        if (lines.length === 1) {
             lines[0].deleteButton.prop("disabled", false);
         }
         let newLine = {
-                selector: line.selector,
-                transformation: line.transformation,
-                color: colors[nextColor],
-                div: null,
-                deleteButton: null
+            selector: line.selector,
+            transformation: line.transformation,
+            color: colors[nextColor],
+            div: null,
+            deleteButton: null
         };
         nextColor = (nextColor + 1) % colors.length;
         let newIdx = lines.findIndex(v => v === line) + 1;
@@ -238,7 +330,7 @@ function getDataSets() {
         .map(line => {
             return {
                 label: line.selector.text,
-                data: line.transformation.transformation(data.dataPoints.map(line.selector.selector)),
+                data: data[line.selector.code]["BE"],
                 pointRadius: 0,
                 pointHitRadius: 5,
                 fill: false,
@@ -250,9 +342,44 @@ function getDataSets() {
 function fetchData() {
     return $.ajax("data")
         .done(payload => {
-            data = payload;
+            data = {
+                timestamp: payload.timestamp,
+                dates: payload.dates,
+                newCases: dataPoints(payload.newCases),
+                newHospital: dataPoints(payload.newHospital),
+                inHospital: dataPoints(payload.inHospital),
+                inIcu: dataPoints(payload.inIcu),
+                deaths: dataPoints(payload.deaths)
+            };
             render();
         });
+}
+
+function dataPoints(series) {
+    let result = {}
+    for (let area of areas) {
+        if(series[area.code]) {
+            addRecursive(result, area, series[area.code]);
+        }
+    }
+    return result;
+}
+
+function addRecursive(collector, area, data) {
+    if(collector[area.code]) {
+        for(let i = 0; i < collector[area.code].length; i++) {
+            if(data[i]) {
+                collector[area.code][i] += data[i];
+            }
+        }
+    } else {
+        collector[area.code] = [];
+        collector[area.code].push(...data);
+    }
+
+    if(area.parent) {
+        addRecursive(collector, area.parent, data)
+    }
 }
 
 function exponentialBackoff(fn, wait, factor, max) {
