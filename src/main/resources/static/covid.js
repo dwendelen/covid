@@ -16,7 +16,14 @@ let transformations = [
         text: "Weekly average, before point, round up",
         transformation: data => {
             return data.map((d, i) => {
-                if (i < 7) {
+                if (i < 7 ||
+                    data[i - 6] == null ||
+                    data[i - 5] == null ||
+                    data[i - 4] == null ||
+                    data[i - 3] == null ||
+                    data[i - 2] == null ||
+                    data[i - 1] == null ||
+                    data[i] == null) {
                     return null;
                 } else {
                     return Math.ceil((
@@ -36,7 +43,14 @@ let transformations = [
         text: "Weekly average, around point, round up",
         transformation: data => {
             return data.map((d, i) => {
-                if (i < 3 || i > data.size - 4) {
+                if (i < 3 || i > data.size - 4 ||
+                    data[i - 3] == null ||
+                    data[i - 2] == null ||
+                    data[i - 1] == null ||
+                    data[i] == null ||
+                    data[i + 1] == null ||
+                    data[i + 2] == null ||
+                    data[i + 3] == null) {
                     return null;
                 } else {
                     return Math.ceil((
@@ -330,7 +344,7 @@ function getDataSets() {
         .map(line => {
             return {
                 label: line.selector.text,
-                data: data[line.selector.code]["BE"],
+                data: line.transformation.transformation(data[line.selector.code]["BE"]),
                 pointRadius: 0,
                 pointHitRadius: 5,
                 fill: false,
