@@ -9,10 +9,12 @@ let nextColor = 0;
 
 let transformations = [
     {
+        code: "no",
         text: "None",
         transformation: data => data
     },
     {
+        code: "wb",
         text: "Weekly average, before point, round up",
         transformation: data => {
             return data.map((d, i) => {
@@ -40,6 +42,7 @@ let transformations = [
         }
     },
     {
+        code: "wa",
         text: "Weekly average, around point, round up",
         transformation: data => {
             return data.map((d, i) => {
@@ -98,12 +101,14 @@ let selectors = [
 
 let scales = [
     {
+        code: "li",
         text: "Linear",
         config: {
             type: "linear"
         }
     },
     {
+        code: "lo",
         text: "Logarithmic",
         config: {
             type: 'logarithmic',
@@ -237,6 +242,12 @@ function render() {
 
     let settings = $("<div>");
 
+    let scl = select(scales, scale, sel => {
+        scale = sel;
+        redraw();
+    });
+    settings.append(scl);
+
     let lineDiv = createLineDiv(lines[0]);
     lines[0].deleteButton.prop("disabled", true);
     settings.append(lineDiv);
@@ -268,28 +279,14 @@ function render() {
 
 function createLineDiv(line) {
     let div = $("<div>");
-    let select = $("<select>");
-    selectors.forEach((sel, idx) => {
-        let s = line.selector === sel ? "selected" : "";
-
-        let opt = $("<option value='" + idx + "' " + s + ">" + sel.text + "</option>");
-        select.append(opt);
-    });
-    select.change(() => {
-        line.selector = selectors[select.val()];
+    let selector = select(selectors, line.selector, sel => {
+        line.selector = sel;
         redraw();
     });
-    div.append(select);
+    div.append(selector);
 
-    let trans = $("<select>");
-    transformations.forEach((t, idx) => {
-        let s = line.transformation === t ? "selected" : "";
-
-        let opt = $("<option value='" + idx + "' " + s + ">" + t.text + "</option>");
-        trans.append(opt);
-    });
-    trans.change(() => {
-        line.transformation = transformations[trans.val()];
+    let trans = select(transformations, line.transformation, sel => {
+        line.transformation = sel;
         redraw();
     });
     div.append(trans);
@@ -332,12 +329,25 @@ function createLineDiv(line) {
     return div;
 }
 
+function select(options, val, onChange) {
+    let sel = $("<select>");
+    options.forEach(option => {
+        let s = option === val ? "selected" : "";
+
+        let opt = $("<option value='" + option.code + "' " + s + ">" + option.text + "</option>");
+        sel.append(opt);
+    });
+    sel.change(() => {
+        onChange(options.filter(o => o.code === sel.val())[0]);
+    });
+    return sel;
+}
+
 function redraw() {
     chart.data.datasets = getDataSets();
     chart.options.scales.yAxes = [scale.config];
     chart.update();
 }
-
 
 function getDataSets() {
     return lines
