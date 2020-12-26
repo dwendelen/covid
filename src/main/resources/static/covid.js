@@ -131,7 +131,7 @@ let scales = [
                         value.toString().startsWith("5")) {
                         return value;
                     } else {
-                        return "";
+                        return null;
                     }
                 }
             }
