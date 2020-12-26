@@ -219,9 +219,8 @@ function main() {
     lines.push({
         selector: selectors[0],
         transformation: transformations[2],
-        color: colors[nextColor],
-        div: null,
-        deleteButton: null
+        area: belgie,
+        color: colors[nextColor]
     });
     nextColor = (nextColor + 1) % colors.length;
     exponentialBackoff(fetchData, 500, 2, 60000);
@@ -249,7 +248,6 @@ function render() {
     settings.append(scl);
 
     let lineDiv = createLineDiv(lines[0]);
-    lines[0].deleteButton.prop("disabled", true);
     settings.append(lineDiv);
 
     body.append(settings);
@@ -278,53 +276,62 @@ function render() {
 }
 
 function createLineDiv(line) {
-    let div = $("<div>");
+    function redrawLine() {
+        let newDiv = createLineDiv(line);
+        div.replaceWith(newDiv);
+        redraw();
+    }
+
     let selector = select(selectors, line.selector, sel => {
         line.selector = sel;
-        redraw();
+        if(typeof data[sel.code][line.area.code] === "undefined") {
+            line.area = line.area.parent;
+        }
+        redrawLine();
     });
-    div.append(selector);
+
+    let area = select(areas, line.area, ar => {
+        line.area = ar;
+        redrawLine();
+    })
 
     let trans = select(transformations, line.transformation, sel => {
         line.transformation = sel;
-        redraw();
+        redrawLine();
     });
-    div.append(trans);
 
     let deleteButton = $("<button>Delete</button>");
     deleteButton.click(() => {
         lines = lines.filter(e => e !== line);
-        if (lines.length === 1) {
-            lines[0].deleteButton.prop("disabled", true);
-        }
         div.remove();
         redraw();
     });
-    div.append(deleteButton);
+    if (lines.length === 1) {
+        deleteButton.prop("disabled", true);
+    }
 
     let copyButton = $("<button>Copy</button>");
     copyButton.click(() => {
-        if (lines.length === 1) {
-            lines[0].deleteButton.prop("disabled", false);
-        }
         let newLine = {
             selector: line.selector,
             transformation: line.transformation,
-            color: colors[nextColor],
-            div: null,
-            deleteButton: null
+            area: line.area,
+            color: colors[nextColor]
         };
         nextColor = (nextColor + 1) % colors.length;
         let newIdx = lines.findIndex(v => v === line) + 1;
         lines.splice(newIdx, 0, newLine);
         let newDiv = createLineDiv(newLine);
         div.after(newDiv);
-        redraw();
+        redrawLine();
     });
-    div.append(copyButton);
 
-    line.div = div;
-    line.deleteButton = deleteButton;
+    let div = $("<div>");
+    div.append(selector);
+    div.append(area);
+    div.append(trans);
+    div.append(deleteButton);
+    div.append(copyButton);
 
     return div;
 }
@@ -354,7 +361,7 @@ function getDataSets() {
         .map(line => {
             return {
                 label: line.selector.text,
-                data: line.transformation.transformation(data[line.selector.code]["BE"]),
+                data: line.transformation.transformation(data[line.selector.code][line.area.code]),
                 pointRadius: 0,
                 pointHitRadius: 5,
                 fill: false,
