@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: covid
-        image: "localhost:32000/covid:c4efc929"
+        image: "localhost:32000/covid:f0bac5fa"
         env:
         - name: "SERVER_SERVLET_CONTEXT_PATH"
           value: "/covid"
