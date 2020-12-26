@@ -4,7 +4,19 @@ let lines = [];
 let chart = null;
 let scale = null;
 
-let colors = ['blue', 'red', 'yellow', 'green'];
+let colors = [{
+    code: 'blue',
+    text: 'Blue'
+}, {
+    code: 'red',
+    text: 'Red'
+}, {
+    code: 'yellow',
+    text: 'Yellow'
+}, {
+    code: 'green',
+    text: 'Green'
+}];
 let nextColor = 0;
 
 let transformations = [
@@ -284,7 +296,7 @@ function createLineDiv(line) {
 
     let selector = select(selectors, line.selector, sel => {
         line.selector = sel;
-        if(typeof data[sel.code][line.area.code] === "undefined") {
+        if (typeof data[sel.code][line.area.code] === "undefined") {
             line.area = line.area.parent;
         }
         redrawLine();
@@ -299,7 +311,10 @@ function createLineDiv(line) {
         line.transformation = sel;
         redrawLine();
     });
-
+    let color = select(colors, line.color, col => {
+        line.color = col;
+        redrawLine();
+    });
     let deleteButton = $("<button>Delete</button>");
     deleteButton.click(() => {
         lines = lines.filter(e => e !== line);
@@ -330,6 +345,7 @@ function createLineDiv(line) {
     div.append(selector);
     div.append(area);
     div.append(trans);
+    div.append(color);
     div.append(deleteButton);
     div.append(copyButton);
 
@@ -365,7 +381,7 @@ function getDataSets() {
                 pointRadius: 0,
                 pointHitRadius: 5,
                 fill: false,
-                borderColor: line.color
+                borderColor: line.color.code
             };
         });
 }
@@ -389,7 +405,7 @@ function fetchData() {
 function dataPoints(series) {
     let result = {}
     for (let area of areas) {
-        if(series[area.code]) {
+        if (series[area.code]) {
             addRecursive(result, area, series[area.code]);
         }
     }
@@ -397,9 +413,9 @@ function dataPoints(series) {
 }
 
 function addRecursive(collector, area, data) {
-    if(collector[area.code]) {
-        for(let i = 0; i < collector[area.code].length; i++) {
-            if(data[i]) {
+    if (collector[area.code]) {
+        for (let i = 0; i < collector[area.code].length; i++) {
+            if (data[i]) {
                 collector[area.code][i] += data[i];
             }
         }
@@ -408,7 +424,7 @@ function addRecursive(collector, area, data) {
         collector[area.code].push(...data);
     }
 
-    if(area.parent) {
+    if (area.parent) {
         addRecursive(collector, area.parent, data)
     }
 }
