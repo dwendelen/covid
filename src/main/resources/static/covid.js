@@ -376,7 +376,7 @@ function getDataSets() {
     return lines
         .map(line => {
             return {
-                label: line.selector.text,
+                label: calcLabel(lines, line),
                 data: line.transformation.transformation(data[line.selector.code][line.area.code]),
                 pointRadius: 0,
                 pointHitRadius: 5,
@@ -384,6 +384,36 @@ function getDataSets() {
                 borderColor: line.color.code
             };
         });
+}
+
+function calcLabel(lines, line) {
+    let pieces = [];
+    if (lines
+        .filter(l => l.selector !== line.selector)
+        .length > 0
+    ) {
+        pieces.push(line.selector.text);
+    }
+    if (lines
+        .filter(l => l.selector === line.selector)
+        .filter(l => l.area !== line.area)
+        .length > 0
+    ) {
+        pieces.push(line.area.text);
+    }
+    if (lines
+        .filter(l => l.selector === line.selector)
+        .filter(l => l.area === line.area)
+        .filter(l => l.transformation !== line.transformation)
+        .length > 0
+    ) {
+        pieces.push(line.transformation.text);
+    }
+    if (pieces.length === 0) {
+        return line.selector.text;
+    } else {
+        return pieces.join(", ");
+    }
 }
 
 function fetchData() {
