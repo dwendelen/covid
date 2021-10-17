@@ -1,8 +1,9 @@
-apiVersion: networking.k8s.io/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: covid
 spec:
+  ingressClassName: public
   tls:
   - hosts:
     - daan.se
@@ -12,6 +13,9 @@ spec:
     http:
       paths:
       - path: /covid
+        pathType: Prefix
         backend:
-          serviceName: covid
-          servicePort: http
+          service:
+            name: covid
+            port:
+              name: http
