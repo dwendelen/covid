@@ -71,7 +71,7 @@ class DataService(
             )
             loadedData.set(data)
         } catch (e: Exception) {
-            //TODO
+            e.printStackTrace()
         }
     }
 
