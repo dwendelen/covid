@@ -1,5 +1,8 @@
 let data = null;
 
+let from = "";
+let to = "";
+
 let lines = [];
 let chart = null;
 let scale = null;
@@ -258,6 +261,18 @@ function render() {
         redraw();
     });
     settings.append(scl);
+    let fromInput = input(from, newFrom => {
+        from = newFrom;
+        redraw();
+        return newFrom;
+    });
+    settings.append(fromInput);
+    let toInput = input(to, newTo => {
+        to = newTo;
+        redraw();
+        return newTo;
+    });
+    settings.append(toInput);
 
     let lineDiv = createLineDiv(lines[0]);
     settings.append(lineDiv);
@@ -266,9 +281,6 @@ function render() {
 
     chart = new Chart('canvas', {
         type: 'line',
-        data: {
-            labels: data.dates
-        },
         options: {
             animation: {
                 duration: 0
@@ -366,18 +378,50 @@ function select(options, val, onChange) {
     return sel;
 }
 
+function input(val, onChange) {
+    let input = $("<input type=\"text\">");
+    input.val(val);
+    input.blur(() => {
+        let oldVal = input.val();
+        let newVal = onChange(oldVal);
+        if(newVal !== oldVal) {
+            input.val(newVal);
+        }
+    });
+    return input;
+}
+
 function redraw() {
-    chart.data.datasets = getDataSets();
+    let start = 0;
+    let end = data.dates.length;
+    for (let i = 0; i < data.dates.length; i++) {
+        if(data.dates[i] > from) {
+            break;
+        }
+        start = i;
+    }
+    for (let i = data.dates.length - 1; i >= 0; i--) {
+        if(data.dates[i] <= to) {
+            break;
+        }
+        end = i;
+    }
+    chart.data.labels = getLabels(start, end);
+    chart.data.datasets = getDataSets(start, end);
     chart.options.scales.yAxes = [scale.config];
     chart.update();
 }
 
-function getDataSets() {
+function getLabels(start, end) {
+    return data.dates.slice(start, end);
+}
+
+function getDataSets(start, end) {
     return lines
         .map(line => {
             return {
                 label: calcLabel(lines, line),
-                data: line.transformation.transformation(data[line.selector.code][line.area.code]),
+                data: line.transformation.transformation(data[line.selector.code][line.area.code].slice(start, end)),
                 pointRadius: 0,
                 pointHitRadius: 5,
                 fill: false,
@@ -428,6 +472,8 @@ function fetchData() {
                 inIcu: dataPoints(payload.inIcu),
                 deaths: dataPoints(payload.deaths)
             };
+            from = data.dates[0];
+            to = data.dates[data.dates.length - 1];
             render();
         });
 }
